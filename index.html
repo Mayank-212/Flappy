@@ -106,18 +106,85 @@
    (If you later want local files, replace these with relative paths)
    ============================= */
 const ASSETS = {
-  // images
-  player: "https://raw.githubusercontent.com/Tamrakar182/pixel-platformer/master/characters_packed.png",
-  enemy: "https://cdn.jsdelivr.net/npm/remixicon/icons/System/bug-fill.svg",
-  treasure: "https://cdn.jsdelivr.net/npm/remixicon/icons/Finance/coin-fill.svg",
-  platform: "https://raw.githubusercontent.com/Tamrakar182/pixel-platformer/master/tiles_packed.png",
-  bg1: "https://cdn.jsdelivr.net/npm/remixicon/icons/Weather/sun-fill.svg",
-  bg2: "https://cdn.jsdelivr.net/npm/remixicon/icons/Weather/cloud-fill.svg",
-  power_time: "https://cdn.jsdelivr.net/npm/remixicon/icons/System/time-fill.svg",
-  power_double: "https://cdn.jsdelivr.net/npm/remixicon/icons/Editor/text-quote-s.svg",
-  power_inv: "https://cdn.jsdelivr.net/npm/remixicon/icons/Design/magic-fill.svg",
+  player: (ctx, x, y, size) => {
+    ctx.fillStyle = "#3498db"; // blue
+    ctx.fillRect(x, y, size, size);
+    ctx.fillStyle = "#fff"; // eyes
+    ctx.fillRect(x + size * 0.2, y + size * 0.2, size * 0.2, size * 0.2);
+    ctx.fillRect(x + size * 0.6, y + size * 0.2, size * 0.2, size * 0.2);
+  },
 
-  // sounds (still valid free sounds)
+  enemy: (ctx, x, y, size) => {
+    ctx.fillStyle = "#e74c3c"; // red
+    ctx.beginPath();
+    ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#000";
+    ctx.beginPath();
+    ctx.arc(x + size * 0.3, y + size * 0.3, size * 0.1, 0, Math.PI * 2);
+    ctx.arc(x + size * 0.7, y + size * 0.3, size * 0.1, 0, Math.PI * 2);
+    ctx.fill();
+  },
+
+  treasure: (ctx, x, y, size) => {
+    ctx.fillStyle = "gold";
+    ctx.beginPath();
+    ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#fff";
+    ctx.stroke();
+  },
+
+  platform: (ctx, x, y, w, h) => {
+    ctx.fillStyle = "#2ecc71"; // green
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = "#27ae60";
+    ctx.strokeRect(x, y, w, h);
+  },
+
+  bg1: (ctx, canvas) => {
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    gradient.addColorStop(0, "#87CEEB");
+    gradient.addColorStop(1, "#ffffff");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  },
+
+  bg2: (ctx, canvas) => {
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    gradient.addColorStop(0, "#1e3c72");
+    gradient.addColorStop(1, "#2a5298");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  },
+
+  power_time: (ctx, x, y, size) => {
+    ctx.fillStyle = "#f39c12";
+    ctx.beginPath();
+    ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#fff";
+    ctx.font = `${size * 0.5}px Arial`;
+    ctx.fillText("⏰", x + size * 0.15, y + size * 0.75);
+  },
+
+  power_double: (ctx, x, y, size) => {
+    ctx.fillStyle = "#8e44ad";
+    ctx.fillRect(x, y, size, size);
+    ctx.fillStyle = "#fff";
+    ctx.font = `${size * 0.5}px Arial`;
+    ctx.fillText("2x", x + size * 0.1, y + size * 0.65);
+  },
+
+  power_inv: (ctx, x, y, size) => {
+    ctx.fillStyle = "#16a085";
+    ctx.fillRect(x, y, size, size);
+    ctx.fillStyle = "#fff";
+    ctx.font = `${size * 0.5}px Arial`;
+    ctx.fillText("INV", x + size * 0.05, y + size * 0.65);
+  },
+
+  // sounds stay external for now
   jump: "https://cdn.pixabay.com/download/audio/2021/09/20/audio_9623a4d5a8.wav",
   collect: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_53f05afde1.wav",
   power: "https://cdn.pixabay.com/download/audio/2021/09/20/audio_63e23c79d3.wav",
@@ -125,6 +192,7 @@ const ASSETS = {
   lose: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_8e4f8b12b2.wav",
   bgm: "https://cdn.pixabay.com/download/audio/2022/08/09/audio_5b9f7e4a9f.mp3"
 };
+
 
 
 /* =============================
