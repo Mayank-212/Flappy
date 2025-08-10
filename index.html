@@ -1,115 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Treasure Dash — Enhanced</title>
-  <link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Platformer Game</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- UI HUD -->
-  <div class="hud">
-    <div id="score">Score: 0</div>
-    <div id="level">Level: 1</div>
-    <div id="lives">Lives: 3</div>
-    <div id="timer">Time: 60</div>
-  </div>
 
-  <!-- Canvas -->
-  <div id="gameContainer">
-    <canvas id="gameCanvas" width="1280" height="720"></canvas>
-  </div>
+    <!-- Game Canvas -->
+    <canvas id="gameCanvas"></canvas>
 
-  <!-- Mobile controls (shown on small screens) -->
-  <div class="controls" id="mobileControls" aria-hidden="true">
-    <div class="control-left" id="btnLeft">◀</div>
-    <div class="control-jump" id="btnJump">▲</div>
-    <div class="control-right" id="btnRight">▶</div>
-  </div>
+    <!-- Footer Text -->
+    <div id="footerText">made by Mayank - SOSE, Shalimar Bagh - Class 9th - A</div>
 
-  <!-- Menus (simple modal-like) -->
-  <div class="overlay hidden" id="menu">
-    <div class="menu-box">
-      <h1>Treasure Dash</h1>
-      <p>Collect treasures, avoid enemies, use power-ups. Controls: ← → / A D, Space to jump (mobile: on-screen buttons)</p>
-      <div class="menu-buttons">
-        <button id="startBtn">Start Game</button>
-        <button id="howBtn">How to Play</button>
-        <button id="muteBtn">Mute Music</button>
-      </div>
-      <div id="howTo" class="hidden">
-        <h3>How to Play</h3>
-        <ul>
-          <li>Collect all treasures to finish the level.</li>
-          <li>Avoid enemies and hazards; touching them costs a life.</li>
-          <li>Use power-ups: Extra Time, Double Points, Invincibility.</li>
-        </ul>
-      </div>
-    </div>
-  </div>
+    <script>
+        // ====== ASSET MAP ======
+        const ASSETS = {
+            player: "https://kenney.nl/media/pages/assets/pixel-platformer/6409ec3af3-1671366120/player.png",
+            enemy: "https://kenney.nl/media/pages/assets/pixel-platformer/0a4a34310d-1671366120/enemy.png",
+            platform: "https://kenney.nl/media/pages/assets/pixel-platformer/da3e93bc62-1671366120/tile.png",
+            treasure: "https://kenney.nl/media/pages/assets/pixel-platformer/61d2364043-1671366120/coin.png",
+            background: "https://kenney.nl/media/pages/assets/pixel-platformer/2b3ff7a163-1671366120/background.png",
 
-  <!-- Final footer credit (always visible) -->
-  <div class="footer-credit">made by Mayank - SOSE, Shalimar Bagh - Class 9th - A</div>
+            jumpSound: "https://cdn.pixabay.com/download/audio/2021/09/20/audio_9623a4d5a8.wav",
+            collectSound: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_53f05afde1.wav",
+            powerSound: "https://cdn.pixabay.com/download/audio/2021/09/20/audio_63e23c79d3.wav",
+            winSound: "https://cdn.pixabay.com/download/audio/2021/09/20/audio_b7f27222e1.wav",
+            loseSound: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_8e4f8b12b2.wav"
+        };
+    </script>
 
-  <script src="game.js" type="module"></script>
-</body>
-</html>
-
-  // Enemy movement and collision
-  enemies.forEach(e => {
-    e.x += e.dir * 2;
-    if (e.x < 300 || e.x > 500) e.dir *= -1;
-    if (player.x < e.x + e.w &&
-        player.x + player.w > e.x &&
-        player.y < e.y + e.h &&
-        player.y + player.h > e.y) {
-      loseLife();
-    }
-  });
-
-  // Check win condition
-  if (treasures.every(t => t.collected)) {
-    winLevel();
-  }
-
-  // Draw
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = "#654321";
-  platforms.forEach(p => ctx.fillRect(p.x, p.y, p.w, p.h));
-  ctx.fillStyle = "gold";
-  treasures.forEach(t => {
-    if (!t.collected) ctx.fillRect(t.x, t.y, 20, 20);
-  });
-  ctx.fillStyle = "red";
-  enemies.forEach(e => ctx.fillRect(e.x, e.y, e.w, e.h));
-  ctx.fillStyle = "blue";
-  ctx.fillRect(player.x, player.y, player.w, player.h);
-
-  // HUD update
-  document.getElementById("score").innerText = "Score: " + score;
-}
-
-document.addEventListener("keydown", e => {
-  if (e.code === "ArrowLeft" || e.code === "KeyA") player.vx = -5;
-  if (e.code === "ArrowRight" || e.code === "KeyD") player.vx = 5;
-  if ((e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW") && player.onGround) {
-    player.vy = jumpPower;
-  }
-});
-document.addEventListener("keyup", e => {
-  if (e.code === "ArrowLeft" || e.code === "KeyA") if (player.vx < 0) player.vx = 0;
-  if (e.code === "ArrowRight" || e.code === "KeyD") if (player.vx > 0) player.vx = 0;
-});
-
-// Mobile controls
-document.getElementById("leftBtn").addEventListener("touchstart", () => player.vx = -5);
-document.getElementById("leftBtn").addEventListener("touchend", () => { if (player.vx < 0) player.vx = 0; });
-document.getElementById("rightBtn").addEventListener("touchstart", () => player.vx = 5);
-document.getElementById("rightBtn").addEventListener("touchend", () => { if (player.vx > 0) player.vx = 0; });
-document.getElementById("jumpBtn").addEventListener("touchstart", () => { if (player.onGround) player.vy = jumpPower; });
-
-startGame();
-</script>
-
+    <script src="game.js"></script>
 </body>
 </html>
