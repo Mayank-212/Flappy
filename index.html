@@ -1,36 +1,600 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pixel Platformer Game</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Treasure Quest — Mayank</title>
+<style>
+  /* --------------------------
+     Basic / Layout
+     -------------------------- */
+  :root{
+    --hud-bg: rgba(0,0,0,0.45);
+    --hud-color: #fff;
+    --accent: #ffd166;
+    --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:#0d1b2a;color:var(--hud-color);font-family:var(--font);-webkit-tap-highlight-color:transparent}
+  #container{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px;padding:8px}
+
+  /* Canvas wrapper keeps aspect-ratio and centers */
+  #canvasWrap{width:100%;max-width:1280px;flex:1;display:flex;align-items:center;justify-content:center}
+  canvas{background:#7ec0ee;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.6);width:100%;height:auto;max-height:calc(100vh - 180px)}
+
+  /* HUD */
+  .hud{position:fixed;top:10px;left:50%;transform:translateX(-50%);display:flex;gap:18px;background:var(--hud-bg);padding:8px 12px;border-radius:10px;z-index:60;align-items:center}
+  .hud div{font-weight:700}
+  #footerCredit{position:fixed;bottom:8px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.5);padding:6px 10px;border-radius:8px;font-family:"Courier New",monospace;color:#fff;z-index:60}
+
+  /* Menus */
+  .overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(rgba(0,0,0,0.55),rgba(0,0,0,0.7));z-index:70}
+  .menu{background:linear-gradient(#0f1724,#071029);padding:18px;border-radius:12px;max-width:720px;color:#fff;box-shadow:0 12px 40px rgba(0,0,0,0.7)}
+  .menu h1{margin:0 0 8px 0}
+  .menu p{margin:6px 0 12px 0}
+  .menu .buttons{display:flex;gap:8px;flex-wrap:wrap}
+  .btn{background:var(--accent);border:none;padding:10px 14px;border-radius:8px;font-weight:800;cursor:pointer}
+  .btn.secondary{background:#6ea8fe}
+
+  /* Mobile controls */
+  .controls{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);display:none;gap:18px;z-index:65;pointer-events:none}
+  .control-btn{pointer-events:auto;width:68px;height:68px;border-radius:50%;background:rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:#fff;user-select:none}
+  @media (max-width:768px){
+    .controls{display:flex}
+    .hud{font-size:14px;padding:6px 10px}
+    canvas{max-height:calc(100vh - 200px)}
+  }
+
+  /* small misc */
+  .stat {display:flex;flex-direction:column;align-items:center}
+  .stat .label{font-size:11px;color:#d9e2ec}
+  .stat .value{font-size:16px}
+</style>
 </head>
 <body>
+  <div id="container">
+    <div class="hud" aria-hidden="false">
+      <div class="stat"><div class="label">SCORE</div><div id="score" class="value">0</div></div>
+      <div class="stat"><div class="label">LIVES</div><div id="lives" class="value">3</div></div>
+      <div class="stat"><div class="label">LEVEL</div><div id="levelDisplay" class="value">1</div></div>
+      <div class="stat"><div class="label">TIME</div><div id="timer" class="value">60</div></div>
+    </div>
 
-    <!-- Game Canvas -->
-    <canvas id="gameCanvas"></canvas>
+    <div id="canvasWrap">
+      <canvas id="gameCanvas" width="1280" height="720" aria-label="Treasure Quest game canvas"></canvas>
+    </div>
 
-    <!-- Footer Text -->
-    <div id="footerText">made by Mayank - SOSE, Shalimar Bagh - Class 9th - A</div>
+    <!-- mobile controls -->
+    <div class="controls" id="mobileControls" aria-hidden="true">
+      <div id="leftBtn" class="control-btn">◀</div>
+      <div id="jumpBtn" class="control-btn">▲</div>
+      <div id="rightBtn" class="control-btn">▶</div>
+    </div>
 
-    <script>
-        // ====== ASSET MAP ======
-        const ASSETS = {
-            player: "https://kenney.nl/media/pages/assets/pixel-platformer/6409ec3af3-1671366120/player.png",
-            enemy: "https://kenney.nl/media/pages/assets/pixel-platformer/0a4a34310d-1671366120/enemy.png",
-            platform: "https://kenney.nl/media/pages/assets/pixel-platformer/da3e93bc62-1671366120/tile.png",
-            treasure: "https://kenney.nl/media/pages/assets/pixel-platformer/61d2364043-1671366120/coin.png",
-            background: "https://kenney.nl/media/pages/assets/pixel-platformer/2b3ff7a163-1671366120/background.png",
+    <!-- menu overlay -->
+    <div id="menuOverlay" class="overlay" style="display:flex">
+      <div class="menu" role="dialog" aria-modal="true">
+        <h1>Treasure Quest</h1>
+        <p>Collect treasures, avoid enemies and traps. Controls: Arrow keys / A D / on-screen buttons (mobile). Get power-ups and finish the level before time runs out!</p>
+        <div style="margin-bottom:10px">
+          <strong>Levels:</strong> 5 progressive levels (tutorial → boss). Power-ups: extra time, double points, invincibility.
+        </div>
+        <div class="buttons">
+          <button class="btn" id="startBtn">Start Game</button>
+          <button class="btn secondary" id="howBtn">How to Play</button>
+          <button class="btn secondary" id="muteBtn">Mute</button>
+          <button class="btn secondary" id="resetBestBtn">Reset Best</button>
+        </div>
+        <div id="howPanel" style="display:none;margin-top:12px">
+          <h3>How to Play</h3>
+          <ul style="line-height:1.6">
+            <li>Move: ← → or A / D. Jump: ↑ or Space.</li>
+            <li>Collect all treasures to open exit. Reach exit to complete level.</li>
+            <li>Power-ups: green=time, orange=double points, purple=invincible.</li>
+          </ul>
+        </div>
+        <div style="margin-top:10px;font-size:13px;color:#cbd5e1">Best Score: <span id="bestScore">0</span></div>
+      </div>
+    </div>
 
-            jumpSound: "https://cdn.pixabay.com/download/audio/2021/09/20/audio_9623a4d5a8.wav",
-            collectSound: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_53f05afde1.wav",
-            powerSound: "https://cdn.pixabay.com/download/audio/2021/09/20/audio_63e23c79d3.wav",
-            winSound: "https://cdn.pixabay.com/download/audio/2021/09/20/audio_b7f27222e1.wav",
-            loseSound: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_8e4f8b12b2.wav"
-        };
-    </script>
+    <div id="footerCredit">made by Mayank - SOSE, Shalimar Bagh - Class 9th - A</div>
+  </div>
 
-    <script src="game.js"></script>
+<script>
+/* =============================
+   ASSET MAP — public URLs
+   (If you later want local files, replace these with relative paths)
+   ============================= */
+const ASSETS = {
+  // images
+  player: "https://raw.githubusercontent.com/Tamrakar182/pixel-platformer/master/characters_packed.png",
+  enemy: "https://cdn.jsdelivr.net/npm/remixicon/icons/System/bug-fill.svg",
+  treasure: "https://cdn.jsdelivr.net/npm/remixicon/icons/Finance/coin-fill.svg",
+  platform: "https://raw.githubusercontent.com/Tamrakar182/pixel-platformer/master/tiles_packed.png",
+  bg1: "https://cdn.jsdelivr.net/npm/remixicon/icons/Weather/sun-fill.svg",
+  bg2: "https://cdn.jsdelivr.net/npm/remixicon/icons/Weather/cloud-fill.svg",
+  power_time: "https://cdn.jsdelivr.net/npm/remixicon/icons/System/time-fill.svg",
+  power_double: "https://cdn.jsdelivr.net/npm/remixicon/icons/Editor/text-quote-s.svg",
+  power_inv: "https://cdn.jsdelivr.net/npm/remixicon/icons/Design/magic-fill.svg",
+
+  // sounds (still valid free sounds)
+  jump: "https://cdn.pixabay.com/download/audio/2021/09/20/audio_9623a4d5a8.wav",
+  collect: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_53f05afde1.wav",
+  power: "https://cdn.pixabay.com/download/audio/2021/09/20/audio_63e23c79d3.wav",
+  win: "https://cdn.pixabay.com/download/audio/2021/09/20/audio_b7f27222e1.wav",
+  lose: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_8e4f8b12b2.wav",
+  bgm: "https://cdn.pixabay.com/download/audio/2022/08/09/audio_5b9f7e4a9f.mp3"
+};
+
+
+/* =============================
+   Canvas & scaling utilities
+   ============================= */
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const BASE_W = 1280, BASE_H = 720;
+
+// scale canvas display to fit while keeping internal drawing resolution constant
+function resizeCanvasDisplay(){
+  const wrap = document.getElementById('canvasWrap');
+  const maxW = Math.min(window.innerWidth - 24, 1280);
+  // maintain BASE_W/BASE_H aspect ratio
+  const ratio = BASE_W / BASE_H;
+  let dispW = Math.min(maxW, window.innerWidth - 24);
+  let dispH = dispW / ratio;
+  // but don't be taller than viewport minus HUD/footer
+  const maxH = window.innerHeight - 180;
+  if(dispH > maxH){ dispH = maxH; dispW = dispH * ratio; }
+  canvas.style.width = dispW + 'px';
+  canvas.style.height = dispH + 'px';
+}
+window.addEventListener('resize', resizeCanvasDisplay);
+resizeCanvasDisplay();
+
+// Set internal drawing resolution once
+canvas.width = BASE_W;
+canvas.height = BASE_H;
+
+/* =============================
+   Helper: load images & sounds
+   ============================= */
+function loadImage(url){ const i=new Image(); i.src=url; return i; }
+function loadAudio(url){ const a=new Audio(url); a.preload='auto'; return a; }
+
+// Preload images
+const IMG = {
+  player: loadImage(ASSETS.player),
+  enemy: loadImage(ASSETS.enemy),
+  treasure: loadImage(ASSETS.treasure),
+  platform: loadImage(ASSETS.platform),
+  bg1: loadImage(ASSETS.bg1),
+  bg2: loadImage(ASSETS.bg2),
+  power_time: loadImage(ASSETS.power_time),
+  power_double: loadImage(ASSETS.power_double),
+  power_inv: loadImage(ASSETS.power_inv)
+};
+
+// Preload audio
+const SFX = {
+  jump: loadAudio(ASSETS.jump),
+  collect: loadAudio(ASSETS.collect),
+  power: loadAudio(ASSETS.power),
+  win: loadAudio(ASSETS.win),
+  lose: loadAudio(ASSETS.lose),
+  bgm: loadAudio(ASSETS.bgm)
+};
+SFX.bgm.loop = true;
+
+/* Mobile audio unlock on first gesture */
+function unlockAudio(){ SFX.bgm.play().catch(()=>{}); window.removeEventListener('touchstart', unlockAudio); window.removeEventListener('mousedown', unlockAudio); }
+window.addEventListener('touchstart', unlockAudio, {once:true});
+window.addEventListener('mousedown', unlockAudio, {once:true});
+
+/* =============================
+   Game State & Constants
+   ============================= */
+const MAX_LEVEL = 5;
+let state = {
+  running: false,
+  level: 1,
+  score: 0,
+  lives: 3,
+  timer: 60,
+  bestScore: Number(localStorage.getItem('treasure_best') || 0),
+  keys: {left:false,right:false,jump:false},
+  player: null,
+  platforms: [],
+  treasures: [],
+  enemies: [],
+  powerups: [],
+  activePower: {double:false,inv:false,endTime:0},
+  lastTime: 0
+};
+
+/* UI elements */
+const scoreEl = document.getElementById('score');
+const livesEl = document.getElementById('lives');
+const levelEl = document.getElementById('levelDisplay');
+const timerEl = document.getElementById('timer');
+const bestEl = document.getElementById('bestScore');
+bestEl.innerText = state.bestScore;
+
+/* =============================
+   Entities
+   ============================= */
+class Player {
+  constructor(x,y){ this.x=x;this.y=y;this.w=48;this.h=64;this.vx=0;this.vy=0;this.onGround=false; }
+  rect(){ return {x:this.x,y:this.y,w:this.w,h:this.h}; }
+}
+function rectColl(a,b){ return a.x < b.x + (b.w||b.width) && a.x + (a.w||a.width) > b.x && a.y < b.y + (b.h||b.height) && a.y + (a.h||a.height) > b.y; }
+
+/* =============================
+   Level generator (data-driven)
+   ============================= */
+function buildLevel(n){
+  // Clear
+  state.platforms = [];
+  state.treasures = [];
+  state.enemies = [];
+  state.powerups = [];
+
+  const ground = {x:0,y:BASE_H-80,w:BASE_W,h:80};
+  state.platforms.push(ground);
+
+  // dynamic platforms layout depends on level
+  const gap = 220;
+  for(let i=0;i<5;i++){
+    const px = 120 + i*gap + (n-1)*10*(i%2?1:-1);
+    const py = BASE_H - 180 - i*40 - (n-1)*12;
+    state.platforms.push({x:px,y:py,w:180,h:20});
+    // put treasures on first 3 platforms
+    if(i<4) state.treasures.push({x:px+70,y:py-36,col:false});
+  }
+
+  // enemies count increases with level
+  const enemyCount = Math.min(1 + Math.floor(n/2), 5);
+  for(let i=0;i<enemyCount;i++){
+    const ex = 260 + i*200;
+    const ey = BASE_H-122;
+    state.enemies.push({x:ex,y:ey,w:44,h:44,dir:(i%2?1:-1),speed:1.2 + n*0.3});
+  }
+
+  // powerups: put them at specific levels
+  if(n>=2) state.powerups.push({x:900,y:BASE_H-260,type:'time',picked:false});
+  if(n>=3) state.powerups.push({x:520,y:BASE_H-360,type:'double',picked:false});
+  if(n>=4) state.powerups.push({x:1100,y:BASE_H-220,type:'inv',picked:false});
+
+  // timer reduces with level
+  state.timer = Math.max(25, 60 - (n-1)*8);
+
+  // spawn player
+  state.player = new Player(80, BASE_H-160);
+}
+
+/* =============================
+   Gameplay functions
+   ============================= */
+function startGame(){
+  state.level = 1; state.score = 0; state.lives = 3; state.bestScore = Number(localStorage.getItem('treasure_best') || 0);
+  buildLevel(state.level);
+  updateHUD();
+  document.getElementById('menuOverlay').style.display='none';
+  state.running = true; state.lastTime = performance.now();
+  if(!SFX.bgm.paused){} else SFX.bgm.play().catch(()=>{});
+  requestAnimationFrame(gameLoop);
+}
+function startLevel(n){
+  state.level = n;
+  buildLevel(n);
+  updateHUD();
+  state.running = true; state.lastTime = performance.now();
+  requestAnimationFrame(gameLoop);
+}
+function nextLevel(){
+  // add level-complete bonus
+  state.score += Math.floor(state.timer) * 5;
+  state.level++;
+  if(state.level > MAX_LEVEL){
+    // game finished
+    SFX.win.play().catch(()=>{});
+    finishGame();
+    return;
+  }
+  startLevel(state.level);
+}
+function loseLife(){
+  state.lives--;
+  SFX.lose.play().catch(()=>{});
+  if(state.lives <= 0){ gameOver(); return; }
+  // restart same level
+  startLevel(state.level);
+}
+function finishGame(){
+  state.running = false;
+  alert(`You finished the game! Score: ${state.score}`);
+  if(state.score > state.bestScore){
+    state.bestScore = state.score;
+    localStorage.setItem('treasure_best', state.bestScore);
+  }
+  document.getElementById('menuOverlay').style.display='flex';
+  bestEl.innerText = state.bestScore;
+}
+function gameOver(){
+  state.running = false;
+  SFX.lose.play().catch(()=>{});
+  alert(`Game Over! Score: ${state.score}`);
+  if(state.score > state.bestScore){
+    state.bestScore = state.score;
+    localStorage.setItem('treasure_best', state.bestScore);
+  }
+  document.getElementById('menuOverlay').style.display='flex';
+  bestEl.innerText = state.bestScore;
+}
+
+/* =============================
+   HUD helper
+   ============================= */
+function updateHUD(){
+  scoreEl.innerText = state.score;
+  livesEl.innerText = state.lives;
+  levelEl.innerText = state.level;
+  timerEl.innerText = Math.max(0, Math.floor(state.timer));
+}
+
+/* =============================
+   Input handling (keyboard & mobile)
+   ============================= */
+window.addEventListener('keydown', e=>{
+  if(e.code==='ArrowLeft' || e.code==='KeyA') state.keys.left=true;
+  if(e.code==='ArrowRight' || e.code==='KeyD') state.keys.right=true;
+  if(e.code==='Space' || e.code==='ArrowUp' || e.code==='KeyW') state.keys.jump=true;
+});
+window.addEventListener('keyup', e=>{
+  if(e.code==='ArrowLeft' || e.code==='KeyA') state.keys.left=false;
+  if(e.code==='ArrowRight' || e.code==='KeyD') state.keys.right=false;
+  if(e.code==='Space' || e.code==='ArrowUp' || e.code==='KeyW') state.keys.jump=false;
+});
+
+// touch buttons
+const leftBtn = document.getElementById('leftBtn');
+const rightBtn = document.getElementById('rightBtn');
+const jumpBtn = document.getElementById('jumpBtn');
+[leftBtn,rightBtn,jumpBtn].forEach(btn=>{
+  if(btn){
+    btn.addEventListener('touchstart', e=>{ e.preventDefault(); if(btn===leftBtn) state.keys.left=true; if(btn===rightBtn) state.keys.right=true; if(btn===jumpBtn) state.keys.jump=true; }, {passive:false});
+    btn.addEventListener('touchend', e=>{ e.preventDefault(); if(btn===leftBtn) state.keys.left=false; if(btn===rightBtn) state.keys.right=false; if(btn===jumpBtn) state.keys.jump=false; }, {passive:false});
+    // mouse support for convenience
+    btn.addEventListener('mousedown', e=>{ if(btn===leftBtn) state.keys.left=true; if(btn===rightBtn) state.keys.right=true; if(btn===jumpBtn) state.keys.jump=true; });
+    btn.addEventListener('mouseup', e=>{ if(btn===leftBtn) state.keys.left=false; if(btn===rightBtn) state.keys.right=false; if(btn===jumpBtn) state.keys.jump=false; });
+  }
+});
+
+/* =============================
+   Physics & mechanics params
+   ============================= */
+const GRAVITY = 0.7;
+const PLAYER_SPEED = 6;
+const JUMP_V = -14;
+
+/* =============================
+   Main game loop
+   ============================= */
+function gameLoop(ts){
+  if(!state.running) return;
+  const dt = Math.min((ts - state.lastTime) / (1000/60), 4);
+  state.lastTime = ts;
+
+  // update player movement
+  const p = state.player;
+  if(state.keys.left) p.vx = -PLAYER_SPEED; else if(state.keys.right) p.vx = PLAYER_SPEED; else p.vx = 0;
+
+  // jump handling (only when pressing, require onGround)
+  if(state.keys.jump && p.onGround){
+    p.vy = JUMP_V;
+    p.onGround = false;
+    SFX.jump.play().catch(()=>{});
+  }
+
+  // physics
+  p.vy += GRAVITY;
+  p.x += p.vx;
+  p.y += p.vy;
+
+  // world bounds
+  if(p.x < 0) p.x = 0;
+  if(p.x + p.w > BASE_W) p.x = BASE_W - p.w;
+  if(p.y > BASE_H + 200){ // fell far below
+    loseLife(); return;
+  }
+
+  // platform collisions
+  p.onGround = false;
+  for(const plat of state.platforms){
+    const platRect = {x:plat.x,y:plat.y,w:plat.w,h:plat.h?plat.h:plat.height};
+    // AABB check
+    if(p.x < platRect.x + platRect.w && p.x + p.w > platRect.x && p.y < platRect.y + platRect.h && p.y + p.h > platRect.y){
+      // are we landing from above?
+      if(p.vy >= 0 && (p.y + p.h - p.vy) <= platRect.y + 6){
+        p.y = platRect.y - p.h;
+        p.vy = 0;
+        p.onGround = true;
+      } else {
+        // side bump - push player out
+        if(p.x < platRect.x) p.x = platRect.x - p.w;
+        else p.x = platRect.x + platRect.w;
+      }
+    }
+  }
+
+  // update enemies
+  for(const e of state.enemies){
+    e.x += e.dir * e.speed;
+    // patrolling bounds - reversed if out of general range
+    if(e.x < 80) e.dir = 1;
+    if(e.x > BASE_W - 140) e.dir = -1;
+    // player collision
+    if(rectColl(p, e)){
+      if(state.activePower.inv){
+        // if invincible, bounce enemy away and award small points
+        e.x += e.dir * 60;
+        state.score += 5;
+      } else {
+        loseLife();
+        return;
+      }
+    }
+  }
+
+  // treasures collection
+  for(const t of state.treasures){
+    if(!t.col && rectColl(p, {x:t.x,y:t.y,w:28,h:28})){
+      t.col = true;
+      state.score += state.activePower.double ? 20 : 10;
+      SFX.collect.play().catch(()=>{});
+    }
+  }
+
+  // powerups
+  const now = performance.now();
+  for(const pu of state.powerups){
+    if(!pu.picked && rectColl(p, {x:pu.x,y:pu.y,w:34,h:34})){
+      pu.picked = true;
+      SFX.power.play().catch(()=>{});
+      if(pu.type === 'time') state.timer += 12;
+      if(pu.type === 'double') { state.activePower.double = true; state.activePower.endTime = now + 10000; }
+      if(pu.type === 'inv') { state.activePower.inv = true; state.activePower.endTime = now + 8000; }
+    }
+  }
+  if(state.activePower.endTime && now > state.activePower.endTime){ state.activePower.double=false; state.activePower.inv=false; state.activePower.endTime=0; }
+
+  // timer countdown
+  state.timer -= dt * (1/60);
+  if(state.timer <= 0){ loseLife(); return; }
+
+  // check win: all treasures collected -> show exit and check player reaches right end
+  if(state.treasures.every(t=>t.col)){
+    // draw exit; if player reaches x > BASE_W - 120 -> win level
+    if(p.x + p.w >= BASE_W - 120){
+      // level complete
+      SFX.win.play().catch(()=>{});
+      setTimeout(()=> nextLevel(), 350);
+      state.running = false;
+      state.score += Math.floor(state.timer) * 5;
+      if(state.score > state.bestScore) { state.bestScore = state.score; localStorage.setItem('treasure_best', state.bestScore); bestEl.innerText = state.bestScore; }
+      return;
+    }
+  }
+
+  // update HUD
+  updateHUD();
+
+  // render
+  render();
+
+  // next frame
+  requestAnimationFrame(gameLoop);
+}
+
+/* =============================
+   Render function: draws entire scene at BASE_W x BASE_H
+   ============================= */
+function render(){
+  // clear
+  ctx.clearRect(0,0,BASE_W,BASE_H);
+
+  // background: pick per level
+  const bg = (state.level <= 2) ? IMG.bg1 : IMG.bg2;
+  if(bg && bg.complete && bg.naturalWidth) ctx.drawImage(bg, 0, 0, BASE_W, BASE_H);
+  else {
+    const g = ctx.createLinearGradient(0,0,0,BASE_H);
+    g.addColorStop(0,'#bfe9ff'); g.addColorStop(1,'#7ec0ee');
+    ctx.fillStyle = g; ctx.fillRect(0,0,BASE_W,BASE_H);
+  }
+
+  // platforms
+  for(const plat of state.platforms){
+    if(IMG.platform && IMG.platform.complete && IMG.platform.naturalWidth){
+      ctx.drawImage(IMG.platform, plat.x, plat.y, plat.w, plat.h || 20);
+    } else {
+      ctx.fillStyle = '#6b4f2e'; ctx.fillRect(plat.x,plat.y,plat.w,plat.h||20);
+    }
+  }
+
+  // treasures
+  for(const t of state.treasures){
+    if(t.col) continue;
+    if(IMG.treasure && IMG.treasure.complete && IMG.treasure.naturalWidth) ctx.drawImage(IMG.treasure, t.x, t.y, 28, 28);
+    else { ctx.fillStyle='#ffd700'; ctx.fillRect(t.x,t.y,28,28); }
+  }
+
+  // powerups
+  for(const pu of state.powerups){
+    if(pu.picked) continue;
+    let key = pu.type === 'time' ? 'power_time' : pu.type === 'double' ? 'power_double' : 'power_inv';
+    if(IMG[key] && IMG[key].complete && IMG[key].naturalWidth) ctx.drawImage(IMG[key], pu.x, pu.y, 34,34);
+    else {
+      ctx.fillStyle = pu.type==='time'?'#34d399':pu.type==='double'?'#f97316':'#a78bfa'; ctx.fillRect(pu.x,pu.y,34,34);
+    }
+  }
+
+  // enemies
+  for(const e of state.enemies){
+    if(IMG.enemy && IMG.enemy.complete && IMG.enemy.naturalWidth) ctx.drawImage(IMG.enemy, e.x, e.y, e.w, e.h);
+    else { ctx.fillStyle='#ef4444'; ctx.fillRect(e.x,e.y,e.w,e.h); }
+  }
+
+  // player
+  const p = state.player;
+  if(IMG.player && IMG.player.complete && IMG.player.naturalWidth) ctx.drawImage(IMG.player, p.x, p.y, p.w, p.h);
+  else { ctx.fillStyle='#2563eb'; ctx.fillRect(p.x,p.y,p.w,p.h); }
+
+  // exit indicator if all collected
+  if(state.treasures.every(t=>t.col)){
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(BASE_W-120, BASE_H-200, 96, 160);
+    ctx.fillStyle = '#ffd166';
+    ctx.fillRect(BASE_W-100, BASE_H-180, 56, 120);
+    ctx.fillStyle='#071a2b';
+    ctx.font='22px sans-serif'; ctx.fillText('EXIT', BASE_W-112, BASE_H-220);
+  }
+
+  // power status text
+  if(state.activePower.double || state.activePower.inv){
+    ctx.fillStyle='rgba(0,0,0,0.4)'; ctx.fillRect(8, BASE_H-40, 260, 32);
+    ctx.fillStyle='#fff'; ctx.font='18px sans-serif';
+    const t = state.activePower.inv ? 'Invincible' : state.activePower.double ? 'Double Points' : '';
+    ctx.fillText(t, 14, BASE_H-18);
+  }
+}
+
+/* =============================
+   Menu / UI wiring
+   ============================= */
+document.getElementById('startBtn').addEventListener('click', ()=> startGame());
+document.getElementById('howBtn').addEventListener('click', ()=>{
+  const panel = document.getElementById('howPanel');
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+});
+document.getElementById('muteBtn').addEventListener('click', (e)=>{
+  if(SFX.bgm.paused){ SFX.bgm.play().catch(()=>{}); e.target.innerText='Mute'; } else { SFX.bgm.pause(); e.target.innerText='Unmute'; }
+});
+document.getElementById('resetBestBtn').addEventListener('click', ()=>{
+  localStorage.removeItem('treasure_best'); state.bestScore = 0; bestEl.innerText = 0; alert('Best score cleared'); 
+});
+
+/* =============================
+   Initialization: build first level and show menu
+   ============================= */
+(function init(){
+  buildLevel(1);
+  // tiny UI adaptation: show mobile controls only on touch devices
+  if('ontouchstart' in window || navigator.maxTouchPoints > 0){ document.getElementById('mobileControls').style.display = 'flex'; }
+  // ensure menu latest best score displayed
+  bestEl.innerText = state.bestScore;
+  // Draw initial frame
+  render();
+})();
+
+</script>
 </body>
 </html>
