@@ -107,91 +107,112 @@
    ============================= */
 const ASSETS = {
   player: (ctx, x, y, size) => {
-    ctx.fillStyle = "#3498db"; // blue
-    ctx.fillRect(x, y, size, size);
-    ctx.fillStyle = "#fff"; // eyes
-    ctx.fillRect(x + size * 0.2, y + size * 0.2, size * 0.2, size * 0.2);
-    ctx.fillRect(x + size * 0.6, y + size * 0.2, size * 0.2, size * 0.2);
+    // Body
+    const gradient = ctx.createLinearGradient(x, y, x, y + size);
+    gradient.addColorStop(0, "#4facfe");
+    gradient.addColorStop(1, "#00f2fe");
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.roundRect(x, y, size, size, size * 0.2);
+    ctx.fill();
+
+    // Eyes
+    ctx.fillStyle = "#fff";
+    ctx.beginPath();
+    ctx.arc(x + size * 0.3, y + size * 0.35, size * 0.12, 0, Math.PI * 2);
+    ctx.arc(x + size * 0.7, y + size * 0.35, size * 0.12, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#000";
+    ctx.beginPath();
+    ctx.arc(x + size * 0.3, y + size * 0.35, size * 0.06, 0, Math.PI * 2);
+    ctx.arc(x + size * 0.7, y + size * 0.35, size * 0.06, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Shadow
+    ctx.fillStyle = "rgba(0,0,0,0.3)";
+    ctx.beginPath();
+    ctx.ellipse(x + size / 2, y + size * 1.05, size * 0.4, size * 0.15, 0, 0, Math.PI * 2);
+    ctx.fill();
   },
 
   enemy: (ctx, x, y, size) => {
-    ctx.fillStyle = "#e74c3c"; // red
+    const gradient = ctx.createRadialGradient(x + size / 2, y + size / 2, size * 0.1, x + size / 2, y + size / 2, size / 2);
+    gradient.addColorStop(0, "#ff5f6d");
+    gradient.addColorStop(1, "#d63031");
+    ctx.fillStyle = gradient;
     ctx.beginPath();
     ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = "#000";
+
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(x + size * 0.3, y + size * 0.3, size * 0.1, 0, Math.PI * 2);
-    ctx.arc(x + size * 0.7, y + size * 0.3, size * 0.1, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.arc(x + size / 2, y + size / 2, size * 0.48, 0, Math.PI * 2);
+    ctx.stroke();
   },
 
   treasure: (ctx, x, y, size) => {
-    ctx.fillStyle = "gold";
+    const gradient = ctx.createLinearGradient(x, y, x, y + size);
+    gradient.addColorStop(0, "#FFD700");
+    gradient.addColorStop(1, "#FFA500");
+    ctx.fillStyle = gradient;
     ctx.beginPath();
     ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
     ctx.fill();
+
     ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 2;
     ctx.stroke();
   },
 
   platform: (ctx, x, y, w, h) => {
-    ctx.fillStyle = "#2ecc71"; // green
+    const gradient = ctx.createLinearGradient(x, y, x, y + h);
+    gradient.addColorStop(0, "#6B8E23");
+    gradient.addColorStop(1, "#3E4E19");
+    ctx.fillStyle = gradient;
     ctx.fillRect(x, y, w, h);
-    ctx.strokeStyle = "#27ae60";
+
+    ctx.strokeStyle = "#2d3a14";
+    ctx.lineWidth = 2;
     ctx.strokeRect(x, y, w, h);
   },
 
   bg1: (ctx, canvas) => {
     const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    gradient.addColorStop(0, "#87CEEB");
-    gradient.addColorStop(1, "#ffffff");
+    gradient.addColorStop(0, "#89f7fe");
+    gradient.addColorStop(1, "#66a6ff");
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Clouds
+    ctx.fillStyle = "rgba(255,255,255,0.8)";
+    for (let i = 0; i < 5; i++) {
+      let cx = Math.random() * canvas.width;
+      let cy = Math.random() * canvas.height * 0.5;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 30, 0, Math.PI * 2);
+      ctx.arc(cx + 40, cy + 10, 25, 0, Math.PI * 2);
+      ctx.arc(cx - 40, cy + 10, 25, 0, Math.PI * 2);
+      ctx.fill();
+    }
   },
 
   bg2: (ctx, canvas) => {
     const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    gradient.addColorStop(0, "#1e3c72");
-    gradient.addColorStop(1, "#2a5298");
+    gradient.addColorStop(0, "#2c3e50");
+    gradient.addColorStop(1, "#000000");
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-  },
 
-  power_time: (ctx, x, y, size) => {
-    ctx.fillStyle = "#f39c12";
-    ctx.beginPath();
-    ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#fff";
-    ctx.font = `${size * 0.5}px Arial`;
-    ctx.fillText("⏰", x + size * 0.15, y + size * 0.75);
-  },
-
-  power_double: (ctx, x, y, size) => {
-    ctx.fillStyle = "#8e44ad";
-    ctx.fillRect(x, y, size, size);
-    ctx.fillStyle = "#fff";
-    ctx.font = `${size * 0.5}px Arial`;
-    ctx.fillText("2x", x + size * 0.1, y + size * 0.65);
-  },
-
-  power_inv: (ctx, x, y, size) => {
-    ctx.fillStyle = "#16a085";
-    ctx.fillRect(x, y, size, size);
-    ctx.fillStyle = "#fff";
-    ctx.font = `${size * 0.5}px Arial`;
-    ctx.fillText("INV", x + size * 0.05, y + size * 0.65);
-  },
-
-  // sounds stay external for now
-  jump: "https://cdn.pixabay.com/download/audio/2021/09/20/audio_9623a4d5a8.wav",
-  collect: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_53f05afde1.wav",
-  power: "https://cdn.pixabay.com/download/audio/2021/09/20/audio_63e23c79d3.wav",
-  win: "https://cdn.pixabay.com/download/audio/2021/09/20/audio_b7f27222e1.wav",
-  lose: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_8e4f8b12b2.wav",
-  bgm: "https://cdn.pixabay.com/download/audio/2022/08/09/audio_5b9f7e4a9f.mp3"
+    // Stars
+    ctx.fillStyle = "white";
+    for (let i = 0; i < 50; i++) {
+      ctx.fillRect(Math.random() * canvas.width, Math.random() * canvas.height, 2, 2);
+    }
+  }
 };
+
 
 
 
